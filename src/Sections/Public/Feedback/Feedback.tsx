@@ -41,7 +41,7 @@ const Feedback: React.FC = () => {
 
   const fetchFeedbacks = async () => {
     try {
-      const response = await fetch(`${apiUrl}/view/feedbacks`);
+      const response = await fetch(`${apiUrl}view/feedbacks`);
       if (!response.ok) {
         throw new Error('Error al obtener los feedbacks');
       }
@@ -85,27 +85,13 @@ const Feedback: React.FC = () => {
 
   const settings = {
     dots: true,
-    infinite: true, // Carrusel infinito
+    infinite: false, // Desactivar el carrusel infinito para evitar repeticiones
     speed: 500,
-    slidesToShow: 3, // Mostrar 3 slides por vez
+    slidesToShow: 1, // Mostrar solo 1 slide por vez
     slidesToScroll: 1, // Desplazar 1 slide a la vez
     autoplay: true,
     autoplaySpeed: 3000,
     pauseOnHover: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-        }
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 1,
-        }
-      }
-    ]
   };
 
   return (
@@ -127,14 +113,13 @@ const Feedback: React.FC = () => {
                 </div>
               </div>
               <div className="feedback-body">
-                <p><strong>Emoción:</strong></p>
+                <p><strong>Estrellas:</strong></p>
                 <div className="feedback-stars">
                   {/* Mostrar estrellas según la emoción */}
                   {Array.from({ length: getStarsForEmotion(feedback.emocion_feedback) }).map((_, index) => (
                     <FontAwesomeIcon key={index} icon={faStar} color="#ffc107" />
                   ))}
                 </div>
-                <p><strong>Motivo:</strong> {feedback.motivo_feedback}</p>
               </div>
             </div>
           </div>

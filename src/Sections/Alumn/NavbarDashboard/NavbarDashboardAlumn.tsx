@@ -14,9 +14,14 @@ const NavbarDashboardAlumn: React.FC<NavbarDashboardAlumnProps> = ({
   const navigate = useNavigate()
   const authContext = useContext(AuthContext)
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  if (isMenuOpen === undefined) {
+  setIsMenuOpen(false);
+}
+
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+    setIsMenuOpen((prev) => !prev);
   };
+  
   // Verifica que el contexto y el usuario estén disponibles
   if (!authContext || !authContext.user) {
     return null; // O muestra algún componente de carga o estado de "no logueado"
@@ -100,7 +105,7 @@ const NavbarDashboardAlumn: React.FC<NavbarDashboardAlumnProps> = ({
             </button>
           </>
         ) : (
-          <span className="user-name">{user.nombre_usuario}</span>
+          <span  onClick={() => onButtonClick('profiledashboardalumn')} className="user-name">{user.nombre_usuario}</span>
         )}
       </div>
     </nav>

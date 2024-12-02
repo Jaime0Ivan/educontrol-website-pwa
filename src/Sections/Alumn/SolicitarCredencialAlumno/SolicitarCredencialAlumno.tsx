@@ -4,14 +4,14 @@ import { apiUrl } from '../../../constants/Api';
 import { AuthContext } from '../../../Auto/Auth';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { saveDataOffline, getOfflineData } from '../../../db';
+import Feedback from '../../../components/Feedback/FeedbackModal';
 
-// Definimos la interfaz para los motivos de credencial
 interface MotivoCredencial {
   id_motivo_credencial: number;
   nombre_motivo_credencial: string;
 }
 
-// Definimos la interfaz para el alumno
 interface Alumno {
   id_alumnos: number;
   nombre_alumnos: string;
@@ -34,6 +34,7 @@ export default function SolicitarCredencialAlumno() {
 
   const [motivos, setMotivos] = useState<MotivoCredencial[]>([]);
   const [, setAlumno] = useState<Alumno | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false); // Estado para controlar el modal de feedback
 
   useEffect(() => {
     if (user) {
@@ -46,8 +47,27 @@ export default function SolicitarCredencialAlumno() {
             ...prevFormData,
             idalumno: result.id_alumnos.toString()
           }));
+
+          // Guardar los datos del alumno en IndexedDB
+          saveDataOffline({
+            key: `alumnoData-${user.id_usuario}`,
+            value: JSON.stringify(result),
+            timestamp: Date.now(),
+          });
         } catch {
-          toast.error('Error al obtener la información del alumno');
+          // Intentar cargar los datos del alumno desde IndexedDB si falla la conexión
+          const cachedData = await getOfflineData(`alumnoData-${user.id_usuario}`);
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData.value);
+            setAlumno(parsedData);
+            setFormData((prevFormData) => ({
+              ...prevFormData,
+              idalumno: parsedData.id_alumnos.toString()
+            }));
+            console.log('Datos del alumno cargados desde IndexedDB:', parsedData);
+          } else {
+            toast.error('Error al obtener la información del alumno');
+          }
         }
       };
 
@@ -61,8 +81,23 @@ export default function SolicitarCredencialAlumno() {
         const response = await fetch(`${apiUrl}motivos_credencial`);
         const result = await response.json();
         setMotivos(result.motivos_credencial);
-      } catch{
-        toast.error('Error al obtener los motivos de credencial');
+
+        // Guardar los motivos en IndexedDB
+        saveDataOffline({
+          key: 'motivosCredencial',
+          value: JSON.stringify(result.motivos_credencial),
+          timestamp: Date.now(),
+        });
+      } catch {
+        // Intentar cargar los motivos desde IndexedDB si falla la conexión
+        const cachedData = await getOfflineData('motivosCredencial');
+        if (cachedData) {
+          const parsedMotivos = JSON.parse(cachedData.value);
+          setMotivos(parsedMotivos);
+          console.log('Motivos cargados desde IndexedDB:', parsedMotivos);
+        } else {
+          toast.error('Error al obtener los motivos de credencial');
+        }
       }
     };
 
@@ -78,7 +113,7 @@ export default function SolicitarCredencialAlumno() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     try {
       const response = await fetch(`${apiUrl}mensaje_motivo_credencial/insert`, {
         method: 'POST',
@@ -87,16 +122,35 @@ export default function SolicitarCredencialAlumno() {
         },
         body: JSON.stringify(formData)
       });
-
+  
       if (response.ok) {
         toast.success('Mensaje enviado correctamente');
+  
+        // Verificar si el modal de feedback puede mostrarse solo si user no es null
+        if (user) {
+          const feedbackResponse = await fetch(`${apiUrl}can-show-feedback/${user.id_usuario}`);
+          const feedbackResult = await feedbackResponse.json();
+  
+          if (feedbackResult.canShowFeedback) {
+            setShowFeedbackModal(true); // Mostrar el modal solo si la API lo permite
+          } else {
+            toast.info(feedbackResult.message); // Mostrar mensaje si no es posible enviar feedback
+          }
+        } else {
+          toast.error('El usuario no está autenticado.');
+        }
       } else {
         const error = await response.json();
         toast.error(error.error);
       }
-    } catch  {
+    } catch {
       toast.error('Error al conectar con el servidor');
     }
+  };
+  
+
+  const handleFeedbackClose = () => {
+    setShowFeedbackModal(false);
   };
 
   return (
@@ -139,6 +193,13 @@ export default function SolicitarCredencialAlumno() {
         <button className="solicitar-button" type="submit">Enviar</button>
       </form>
       <ToastContainer />
+
+      {/* Modal para agregar feedback */}
+      <Feedback
+        isOpen={showFeedbackModal}
+        onRequestClose={handleFeedbackClose}
+        idUsuario={user?.id_usuario || 0} // Si user es null, idUsuario será 0
+      />
     </div>
   );
 }

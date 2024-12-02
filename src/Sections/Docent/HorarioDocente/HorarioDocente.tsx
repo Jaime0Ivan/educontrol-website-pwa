@@ -40,47 +40,105 @@ const HorarioDocente: React.FC = () => {
   }>({})
   const alumnosPerPage = 5
 
+  const generateAlumnosPdf = (horario: Horario | null, alumnos: Alumno[]) => {
+    if (!horario) {
+      toast.error("No se ha seleccionado un horario.");
+      return;
+    }
+  
+    const doc = new jsPDF();
+    const tableColumn = ["Nombre Completo", "Número de Control"];
+    const tableRows: string[][] = [];
+  
+    alumnos.forEach((alumno) => {
+      const alumnoData = [
+        `${alumno.nombre_alumnos} ${alumno.app_alumnos} ${alumno.apm_alumnos}`,
+        alumno.nocontrol_alumnos,
+      ];
+      tableRows.push(alumnoData);
+    });
+  
+    const { nombre_asignatura, nombre_docente, nombre_grado, nombre_grupo, nombre_carrera_tecnica } =
+      horario;
+  
+    doc.setFillColor(0, 118, 0);
+    doc.rect(0, 0, 210, 20, "F");
+  
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LISTA DE ALUMNOS", 105, 12, { align: "center" });
+  
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+  
+    let yOffset = 30;
+    const lineSpacing = 10;
+  
+    doc.text(`Asignatura: ${nombre_asignatura}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Docente: ${nombre_docente}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Grado: ${nombre_grado}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Grupo: ${nombre_grupo}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Carrera Técnica: ${nombre_carrera_tecnica}`, 14, yOffset);
+  
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: yOffset + 12,
+      styles: {
+        fontSize: 10,
+      },
+      headStyles: {
+        fillColor: [0, 118, 0],
+        textColor: [255, 255, 255],
+      },
+    });
+  
+    const pdfFileName = `lista_alumnos_horario_${horario.id_horario}.pdf`;
+    doc.save(pdfFileName);
+  };
+  
+
   useEffect(() => {
     const fetchHorarios = async () => {
       if (user) {
         try {
-          const response = await fetch(
-            `${apiUrl}horarios_escolares/docente/${user.id_usuario}`
-          )
-          const data = await response.json()
+          const response = await fetch(`${apiUrl}horarios_escolares/docente/${user.id_usuario}`);
+          const data = await response.json();
           if (response.ok) {
-            setHorarios(data)
+            setHorarios(data);
           } else {
-            setError(data.error)
+            setError(data.error);
           }
-        } catch  {
-          setError('Error al obtener los horarios del docente')
+        } catch {
+          setError('Error al obtener los horarios del docente');
         } finally {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    fetchHorarios()
-  }, [user])
+    fetchHorarios();
+  }, [user]);
 
   const openModal = async (horario: Horario) => {
-    setSelectedHorario(horario)
+    setSelectedHorario(horario);
     try {
-      const response = await fetch(
-        `${apiUrl}alumnos/horario/${horario.id_horario}`
-      )
-      const data = await response.json()
+      const response = await fetch(`${apiUrl}alumnos/horario/${horario.id_horario}`);
+      const data = await response.json();
       if (response.ok) {
-        setAlumnos(data)
+        setAlumnos(data);
       } else {
-        setAlumnos([])
+        setAlumnos([]);
       }
     } catch {
-      setAlumnos([])
+      setAlumnos([]);
     }
-    setIsModalOpen(true)
-  }
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -110,22 +168,21 @@ const HorarioDocente: React.FC = () => {
   const openAttendanceModal = async () => {
     if (selectedHorario) {
       try {
-        const response = await fetch(
-          `${apiUrl}alumnos/horario/${selectedHorario.id_horario}`
-        )
-        const data = await response.json()
+        const response = await fetch(`${apiUrl}alumnos/horario/${selectedHorario.id_horario}`);
+        const data = await response.json();
         if (response.ok) {
-          setAlumnos(data)
-          setIsInitialModalOpen(false)
-          setIsAttendanceModalOpen(true)
+          setAlumnos(data);
+          setIsInitialModalOpen(false);
+          setIsAttendanceModalOpen(true);
         } else {
-          setAlumnos([])
+          setAlumnos([]);
         }
-      } catch  {
-        setAlumnos([])
+      } catch {
+        setAlumnos([]);
+        toast.error('No se pudieron cargar los alumnos para el horario seleccionado.');
       }
     }
-  }
+  };
 
   const closeAttendanceModal = () => {
     setIsAttendanceModalOpen(false)
@@ -135,10 +192,10 @@ const HorarioDocente: React.FC = () => {
 
   const handleAddAlumno = async () => {
     if (!nocontrolAlumno) {
-      toast.error('Por favor, ingrese el número de control del alumno.')
-      return
+      toast.error('Por favor, ingrese el número de control del alumno.');
+      return;
     }
-
+  
     try {
       const response = await fetch(
         `${apiUrl}horarios_escolares/${selectedHorario?.id_horario}/agregar_alumno`,
@@ -147,23 +204,23 @@ const HorarioDocente: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ nocontrol_alumnos: nocontrolAlumno }), // Verifica que el nombre coincide
+          body: JSON.stringify({ nocontrol_alumnos: nocontrolAlumno }),
         }
-      )
-
+      );
+  
       if (response.ok) {
-        const newAlumno = await response.json()
-        setAlumnos((prevAlumnos) => [...prevAlumnos, newAlumno])
-        toast.success('Alumno agregado exitosamente.')
-        closeAddModal()
+        const newAlumno = await response.json();
+        setAlumnos((prevAlumnos) => [...prevAlumnos, newAlumno]);
+        toast.success('Alumno agregado exitosamente.');
+        closeAddModal();
       } else {
-        const errorData = await response.json()
-        toast.error(errorData.message || 'Error al agregar el alumno.')
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Error al agregar el alumno.');
       }
-    } catch{
-      toast.error('Error al agregar el alumno.')
+    } catch {
+      toast.error('Error al agregar el alumno.');
     }
-  }
+  };
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber)
@@ -230,35 +287,34 @@ const HorarioDocente: React.FC = () => {
 
   const handleSaveAttendance = async () => {
     if (!selectedHorario || !currentDate) {
-      toast.error('Horario o fecha no seleccionados.')
-      return
+      toast.error('Horario o fecha no seleccionados.');
+      return;
     }
-
+  
     try {
-      const alumno = alumnos[currentAlumnoIndex]
-      const attendanceRecord = attendance[alumno.id_alumnos]
-      const attendanceStatus =
-        attendanceRecord && attendanceRecord.attended ? 'Asistió' : 'No asistió'
+      const alumno = alumnos[currentAlumnoIndex];
+      const attendanceRecord = attendance[alumno.id_alumnos];
+      const attendanceStatus = attendanceRecord && attendanceRecord.attended ? 'Asistió' : 'No asistió';
+  
+      const attendanceData = {
+        id_alumno: alumno.id_alumnos,
+        id_horario: selectedHorario.id_horario,
+        fecha: new Date(currentDate).toISOString().replace('T', ' ').substring(0, 19),
+        estado_asistencia: attendanceStatus,
+        comentarios: attendanceRecord ? attendanceRecord.comment : '',
+      };
+  
       const response = await fetch(`${apiUrl}asistencias/registrar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          id_alumno: alumno.id_alumnos,
-          id_horario: selectedHorario.id_horario,
-          fecha: new Date(currentDate)
-            .toISOString()
-            .replace('T', ' ')
-            .substring(0, 19),
-          estado_asistencia: attendanceStatus,
-          comentarios: attendanceRecord ? attendanceRecord.comment : '',
-        }),
-      })
-
+        body: JSON.stringify(attendanceData),
+      });
+  
       if (response.ok) {
-        toast.success('Asistencia guardada exitosamente.')
-
+        toast.success('Asistencia guardada exitosamente.');
+  
         const notificationResponse = await fetch(`${apiUrl}send_notification`, {
           method: 'POST',
           headers: {
@@ -269,95 +325,90 @@ const HorarioDocente: React.FC = () => {
             subject: 'Notificación de Asistencia',
             message: `Hola ${alumno.nombre_alumnos}, tu estado de asistencia en la asignatura: ${selectedHorario.nombre_asignatura} de hoy es: ${attendanceStatus} \n `,
           }),
-        })
-
+        });
+  
         if (notificationResponse.ok) {
-          toast.success('Notificación enviada exitosamente.')
+          toast.success('Notificación enviada exitosamente.');
         } else {
-          const errorData = await notificationResponse.json()
-          toast.error(errorData.message || 'Error al enviar la notificación.')
+          const errorData = await notificationResponse.json();
+          toast.error(errorData.message || 'Error al enviar la notificación.');
         }
-
+  
         if (currentAlumnoIndex < alumnos.length - 1) {
-          setCurrentAlumnoIndex(currentAlumnoIndex + 1)
+          setCurrentAlumnoIndex(currentAlumnoIndex + 1);
         }
       } else {
-        const errorData = await response.json()
-        toast.error(errorData.message || 'Error al guardar la asistencia.')
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Error al guardar la asistencia.');
       }
     } catch {
-      toast.error('Error al guardar la asistencia.')
+      toast.error('Error al guardar la asistencia.');
     }
-  }
+  };
 
-  const generatePdf = () => {
+  const generatePdf = async () => {
     if (!selectedHorario) {
-      toast.error('No se ha seleccionado un horario.')
-      return
+      toast.error('No se ha seleccionado un horario.');
+      return;
     }
-
-    const doc = new jsPDF()
+  
+    const doc = new jsPDF();
     const tableColumn = [
       'Nombre Completo',
       'Número de Control',
       'Asistencia',
       'Comentario',
-    ]
-    const tableRows: string[][] = []
-
+    ];
+    const tableRows: string[][] = [];
+  
     alumnos.forEach((alumno) => {
-      const attendanceRecord = attendance[alumno.id_alumnos]
-      const attendanceStatus =
-        attendanceRecord && attendanceRecord.attended ? 'Asistió' : 'No asistió'
-      const comment = attendanceRecord ? attendanceRecord.comment : ''
+      const attendanceRecord = attendance[alumno.id_alumnos];
+      const attendanceStatus = attendanceRecord && attendanceRecord.attended ? 'Asistió' : 'No asistió';
+      const comment = attendanceRecord ? attendanceRecord.comment : '';
       const alumnoData = [
         `${alumno.nombre_alumnos} ${alumno.app_alumnos} ${alumno.apm_alumnos}`,
         alumno.nocontrol_alumnos,
         attendanceStatus,
         comment,
-      ]
-      tableRows.push(alumnoData)
-    })
-
+      ];
+      tableRows.push(alumnoData);
+    });
+  
     const {
       nombre_asignatura,
       nombre_docente,
       nombre_grado,
       nombre_grupo,
       nombre_carrera_tecnica,
-    } = selectedHorario
-
-    // Dibujar el encabezado
-    doc.setFillColor(0, 118, 0) // Verde fuerte para el encabezado
-    doc.rect(0, 0, 210, 20, 'F') // Rectángulo para el encabezado
-
-    // Texto del encabezado
-    doc.setFontSize(22)
-    doc.setTextColor(255, 255, 255)
-    doc.text('INFORME DIARIO', 105, 12, { align: 'center' })
-
-    // Texto adicional con separaciones
-    doc.setFontSize(12)
-    doc.setTextColor(0, 0, 0)
-
-    let yOffset = 30 // Inicialización del desplazamiento en Y
-    const lineSpacing = 10 // Espacio entre líneas
-
-    doc.text(`Asignatura: ${nombre_asignatura}`, 14, yOffset)
-    yOffset += lineSpacing
-    doc.text(`Docente: ${nombre_docente}`, 14, yOffset)
-    yOffset += lineSpacing
-    doc.text(`Grado: ${nombre_grado}`, 14, yOffset)
-    yOffset += lineSpacing
-    doc.text(`Grupo: ${nombre_grupo}`, 14, yOffset)
-    yOffset += lineSpacing
-    doc.text(`Carrera Técnica: ${nombre_carrera_tecnica}`, 14, yOffset)
-    yOffset += lineSpacing
-
-    const date = new Date().toLocaleDateString()
-    doc.text(`Fecha: ${date}`, 14, yOffset)
-
-    // Agregar la tabla
+    } = selectedHorario;
+  
+    doc.setFillColor(0, 118, 0);
+    doc.rect(0, 0, 210, 20, 'F');
+  
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text('INFORME DIARIO', 105, 12, { align: 'center' });
+  
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+  
+    let yOffset = 30;
+    const lineSpacing = 10;
+  
+    doc.text(`Asignatura: ${nombre_asignatura}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Docente: ${nombre_docente}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Grado: ${nombre_grado}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Grupo: ${nombre_grupo}`, 14, yOffset);
+    yOffset += lineSpacing;
+    doc.text(`Carrera Técnica: ${nombre_carrera_tecnica}`, 14, yOffset);
+    yOffset += lineSpacing;
+  
+    const date = new Date().toLocaleDateString();
+    doc.text(`Fecha: ${date}`, 14, yOffset);
+  
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
@@ -369,11 +420,11 @@ const HorarioDocente: React.FC = () => {
         fillColor: [0, 118, 0],
         textColor: [255, 255, 255],
       },
-    })
-
-    // Guardar el documento
-    doc.save(`reporte_asistencia_${date}.pdf`)
-  }
+    });
+  
+    const pdfFileName = `reporte_asistencia_${date}.pdf`;
+    doc.save(pdfFileName);
+  };
 
   if (loading) {
     return <p className="loading-message-horario-docente">Cargando horarios del docente...</p>
@@ -518,13 +569,22 @@ const HorarioDocente: React.FC = () => {
         <button className="save-button" type="button" onClick={openAddModal}>
           Agregar Alumno
         </button>
+        {alumnos.length > 0 && (
+    <button
+      className="download-button"
+      type="button"
+      onClick={() => generateAlumnosPdf(selectedHorario, alumnos)}
+    >
+      Descargar PDF alumnos del horario
+    </button>
+  )}
       </Modal>
 
       <Modal
         isOpen={isAddModalOpen}
         onRequestClose={closeAddModal}
-        className="modal-add-alumno-horario-docente"
-        overlayClassName="modal-overlay-horarios-docente"
+        className="modal-alumn-manual"
+        overlayClassName="modal-overlay-alumn-manual"
       >
         <h2>Agregar Alumno </h2>
         <div className="add-alumno-form-horario-docente">

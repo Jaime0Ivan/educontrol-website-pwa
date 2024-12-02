@@ -22,7 +22,7 @@
 .admin-welcome {
  width: 100%;
  padding: 20px;
- background-color: #8fbc8f;
+ background-color: var(--color-pagina);
  border-radius: 15px;
  color: white;
  display: flex;
@@ -38,6 +38,48 @@
 .admin-welcome span {
  font-weight: bold;
  color: black;
+}
+
+.admin-feedbacks {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.admin-feedbacks h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 500px; /* Tamaño máximo en pantallas grandes */
+  height: auto;     /* Permite que la gráfica se ajuste en altura */
+  margin: 0 auto;
+}
+
+.feedback-message {
+  text-align: center;
+}
+
+.feedback-message span{
+  color:black;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 576px) {
+  .chart-container {
+    max-width: 300px;
+  }
 }
 
 @media (max-width: 992px) {

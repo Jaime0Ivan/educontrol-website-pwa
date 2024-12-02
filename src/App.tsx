@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from 'react'; 
 import AppRoutes from "./Routes/AppRoutes";
-import { ToastContainer, toast } from 'react-toastify'; // Utilizamos react-toastify para la notificación
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {  fantasma_faild, fantasma_success } from './assets/icons';
+import { fantasma_faild, fantasma_success } from './assets/icons';
 
 const App: React.FC = () => {
-
   useEffect(() => {
+    // Configurar el evento para deshabilitar el scroll
     const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
+      e.preventDefault(); // Esta línea requiere passive: false
       const scrollSpeed = 200;
       window.scrollBy({
         top: e.deltaY > 0 ? scrollSpeed : -scrollSpeed,
@@ -17,6 +17,7 @@ const App: React.FC = () => {
       });
     };
 
+    // Cambiado passive a false
     window.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       window.removeEventListener("wheel", handleWheel);
@@ -40,7 +41,7 @@ const App: React.FC = () => {
         }
       );
     };
-    
+
     const handleOnline = () => {
       toast.success(
         <div className="custom-toast">
@@ -60,7 +61,6 @@ const App: React.FC = () => {
     window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
 
-    // Cleanup event listeners on unmount
     return () => {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
@@ -69,7 +69,6 @@ const App: React.FC = () => {
 
   return (
     <div>
-    
       <AppRoutes />
       <ToastContainer />
     </div>

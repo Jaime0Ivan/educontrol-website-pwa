@@ -3,6 +3,7 @@ import { apiUrl } from '../../../constants/Api';
 import './ChatAdmin.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 import {
   MensajeContacto,
   MensajeContactoAPI,
@@ -31,7 +32,6 @@ const ChatAdmin: React.FC = () => {
         const data: T[] = await response.json();
         const mappedData = mapFunction(data);
 
-        // Elimina duplicados antes de actualizar el estado
         setMensajes((prevMensajes) => {
           const newMensajes = [...prevMensajes, ...mappedData];
           const uniqueMensajes = newMensajes.filter(
@@ -42,10 +42,12 @@ const ChatAdmin: React.FC = () => {
           );
           return uniqueMensajes;
         });
+
       } catch (error) {
         if (error instanceof Error) {
           setError(error.message);
           toast.error(error.message);
+
         }
       } finally {
         setLoading(false);
@@ -98,7 +100,6 @@ const ChatAdmin: React.FC = () => {
         (message) => message.id === messageToDelete
       );
 
-      // Asegúrate de que el mensaje que quieres eliminar sea el correcto
       if (!messageToDeleteObj) return;
 
       const apiEndpoint =
@@ -114,7 +115,6 @@ const ChatAdmin: React.FC = () => {
           throw new Error('Network response was not ok');
         }
 
-        // Elimina solo el mensaje que seleccionaste
         setMensajes((prevMensajes) =>
           prevMensajes.filter((message) => message.id !== messageToDelete)
         );
@@ -140,8 +140,8 @@ const ChatAdmin: React.FC = () => {
       ) : (
         <>
           {currentMessages.length > 0 ? (
-            currentMessages.map((mensaje) => (
-              <div key={mensaje.id} className="message-item">
+            currentMessages.map((mensaje, index) => (
+              <div key={`${mensaje.id}-${mensaje.tipo}-${index}`} className="message-item">
                 <span className="message-icon">
                   {mensaje.tipo === 'contacto' ? '✉️' : '🎫'}
                 </span>
@@ -169,7 +169,7 @@ const ChatAdmin: React.FC = () => {
           <div className="pagination">
             {[...Array(totalPages)].map((_, index) => (
               <span
-                key={index + 1}
+                key={`page-${index}`}
                 onClick={() => paginate(index + 1)}
                 className={`page-link ${index + 1 === currentPage ? 'active' : ''}`}
               >

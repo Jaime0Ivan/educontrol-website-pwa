@@ -4,6 +4,7 @@ import { apiUrl } from '../../../constants/Api';
 import './CredentialsDocent.css';
 import { logo_cbta, logoeducacion } from '../../../assets/logos';
 import { Docente } from '../../../constants/interfaces';
+
 const CredentialsDocent: React.FC = () => {
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
@@ -21,7 +22,7 @@ const CredentialsDocent: React.FC = () => {
           } else {
             setError(data.error);
           }
-        } catch  {
+        } catch {
           setError('Error al obtener la información del docente');
         }
       }
@@ -54,12 +55,10 @@ const CredentialsDocent: React.FC = () => {
               </h2>
             </div>
             <div className="info-section-docente">
-              
               <p><strong>Número de Control:</strong> {docente.noconttrol_docentes}</p>
               <p><strong>Teléfono:</strong> {docente.telefono_docentes}</p>
               <p><strong>Seguro Social:</strong> {docente.seguro_social_docentes}</p>
               <p><strong>Clínica:</strong> {docente.clinica}</p>
-              
             </div>
           </div>
         </div>

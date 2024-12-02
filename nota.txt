@@ -1,0 +1,19 @@
+-- este es de la prueba de cypress  es el comando para ejecutar y que se abra su web
+
+npx cypress open
+
+-- este es de la prueba de jest es el comando para ejecutar
+
+npm test
+
+
+Public Key:
+BJEI6FtirsSkzlN0C1TwPOkyvQG9ptkeqHjlroSZndODByYHOQuRH37lDdWfAJn9yPlsQ7B3OjqEKHu7SxIZ1Bw
+
+Private Key:
+ZpM43o6Oa8X07bGQ0nylkHAZtUDXUBx8dY4iVxLFJeQ
+
+
+SENTRY_AUTH_TOKEN=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
+
+DESPLIEGUE CONTINUO DE SOFTWARE, MONITOREO DE SOFTWARE Y PROCESO DE EVALUACIÓN DE RENDIMIENTO

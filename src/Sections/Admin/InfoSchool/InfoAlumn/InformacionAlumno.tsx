@@ -1,13 +1,14 @@
 import './InfoAlumn.css'
 import './help.css'; 
-import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react'
+import './modal-alumn-manual.css'
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { apiUrl } from '../../../../constants/Api'
 import Modal from 'react-modal'
-import ReCAPTCHA from 'react-google-recaptcha'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { DateTime } from 'luxon'
 import { Alumn,ManualAddFormData,SecretQuestion,SexOption,Clinic,Grado,Grupo,Traslado,TrasladoTransporte,CarreraTecnica,Pais,Estado} from '../../../../constants/interfaces';
+import ModalActualizarAlumno from './ModalActualizarAlumno'
 
 interface FormData {
   nombre_usuario: string
@@ -32,6 +33,21 @@ Modal.setAppElement('#root')
 export default function InfoAlumn() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false)
 
+// Añadir un nuevo estado para manejar el modal de actualización
+const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+const [selectedAlumnoToUpdate, setSelectedAlumnoToUpdate] = useState<Alumn | null>(null);
+
+// Función para abrir el modal de actualización
+const openUpdateModal = (alumno: Alumn) => {
+  setSelectedAlumnoToUpdate(alumno);
+  setIsUpdateModalOpen(true);
+};
+
+// Función para cerrar el modal de actualización
+const closeUpdateModal = () => {
+  setIsUpdateModalOpen(false);
+  setSelectedAlumnoToUpdate(null);
+};
 
   const openHelpModal = () => {
     setIsHelpModalOpen(true);
@@ -106,135 +122,72 @@ export default function InfoAlumn() {
   const [paisOptions, setPaisOptions] = useState<Pais[]>([])
   const [estadoOptions, setEstadoOptions] = useState<Estado[]>([])
   const [step, setStep] = useState<number>(1)
-  const [captchaValido, cambiarEstado] = useState<boolean | null>(null)
-  const captcha = useRef<ReCAPTCHA>(null)
   const [selectedAlumno, setSelectedAlumno] = useState<Alumn | null>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   
 
 
   useEffect(() => {
-    fetchAlumnos()
-    fetchSecretQuestions()
-    fetchSexOptions()
-    fetchClinicOptions()
-    fetchGradoOptions()
-    fetchGrupoOptions()
-    fetchTrasladoOptions()
-    fetchTrasladoTransporteOptions()
-    fetchCarreraTecnicaOptions()
-    fetchPaisOptions()
-    fetchEstadoOptions()
-  }, [])
-
-  const fetchAlumnos = async () => {
-    try {
-      const response = await fetch(`${apiUrl}alumno`)
-      const data = await response.json()
-      setAlumnos(data)
-    } catch  {
-      toast.error('Error al obtener los alumnos')
-    }
-  }
-
-  const fetchSecretQuestions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}pregunta`)
-      const data = await response.json()
-      setSecretQuestions(data)
-    } catch  {
-      toast.error('Error al obtener las preguntas secretas')
-    }
-  }
-
-  const fetchSexOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}sexo`)
-      const data = await response.json()
-      setSexOptions(data)
-    } catch  {
-      toast.error('Error al obtener las opciones de sexo')
-    }
-  }
-
-  const fetchClinicOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}clinica`)
-      const data = await response.json()
-      setClinicOptions(data)
-    } catch {
-      toast.error('Error al obtener las opciones de clínicas')
-    }
-  }
-
-  const fetchGradoOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}grado`)
-      const data = await response.json()
-      setGradoOptions(data)
-    } catch  {
-      toast.error('Error al obtener las opciones de grados')
-    }
-  }
-
-  const fetchGrupoOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}grupo`)
-      const data = await response.json()
-      setGrupoOptions(data)
-    } catch  {
-      toast.error('Error al obtener las opciones de grupos')
-    }
-  }
-
-  const fetchTrasladoOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}traslado`)
-      const data = await response.json()
-      setTrasladoOptions(data)
-    } catch {
-      toast.error('Error al obtener las opciones de traslados')
-    }
-  }
-  const fetchTrasladoTransporteOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}traslado_transporte`)
-      const data = await response.json()
-      setTrasladoTransporteOptions(data)
-    } catch  {
-      toast.error('Error al obtener las opciones de traslados de transporte')
-    }
-  }
-
-  const fetchCarreraTecnicaOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}carreras/tecnicas`)
-      const data = await response.json()
-      setCarreraTecnicaOptions(data.carreras)
-    } catch  {
-      toast.error('Error al obtener las opciones de carreras técnicas')
-    }
-  }
-
-  const fetchPaisOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}paises`)
-      const data = await response.json()
-      setPaisOptions(data.paises)
-    } catch  {
-      toast.error('Error al obtener las opciones de países')
-    }
-  }
-
-  const fetchEstadoOptions = async () => {
-    try {
-      const response = await fetch(`${apiUrl}estados`)
-      const data = await response.json()
-      setEstadoOptions(data.estados)
-    } catch  {
-      toast.error('Error al obtener las opciones de estados')
-    }
-  }
+   fetchData();
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
+ 
+ const fetchData = async () => {
+   try {
+     await fetchAlumnos(); // Llamar a esta función para obtener los alumnos.
+     const [
+       secretQuestionsResponse,
+       sexOptionsResponse,
+       clinicOptionsResponse,
+       gradoOptionsResponse,
+       grupoOptionsResponse,
+       trasladoOptionsResponse,
+       trasladoTransporteOptionsResponse,
+       carreraTecnicaOptionsResponse,
+       paisOptionsResponse,
+       estadoOptionsResponse,
+     ] = await Promise.all([
+       fetch(`${apiUrl}pregunta`),
+       fetch(`${apiUrl}sexo`),
+       fetch(`${apiUrl}clinica`),
+       fetch(`${apiUrl}grado`),
+       fetch(`${apiUrl}grupo`),
+       fetch(`${apiUrl}traslado`),
+       fetch(`${apiUrl}traslado_transporte`),
+       fetch(`${apiUrl}carreras/tecnicas`),
+       fetch(`${apiUrl}paises`),
+       fetch(`${apiUrl}estados`),
+     ]);
+ 
+     const data = await Promise.all([
+       secretQuestionsResponse.json(),
+       sexOptionsResponse.json(),
+       clinicOptionsResponse.json(),
+       gradoOptionsResponse.json(),
+       grupoOptionsResponse.json(),
+       trasladoOptionsResponse.json(),
+       trasladoTransporteOptionsResponse.json(),
+       carreraTecnicaOptionsResponse.json(),
+       paisOptionsResponse.json(),
+       estadoOptionsResponse.json(),
+     ]);
+ 
+     setSecretQuestions(data[0]);
+     setSexOptions(data[1]);
+     setClinicOptions(data[2]);
+     setGradoOptions(data[3]);
+     setGrupoOptions(data[4]);
+     setTrasladoOptions(data[5]);
+     setTrasladoTransporteOptions(data[6]);
+     setCarreraTecnicaOptions(data[7].carreras);
+     setPaisOptions(data[8].paises);
+     setEstadoOptions(data[9].estados);
+   } catch (error) {
+     console.error('Error al obtener los datos:', error);
+     console.error('Error al obtener los datos, por favor intente más tarde.');
+   }
+ };
+ 
 
   const openModal = (alumno: Alumn) => {
     setFormData({
@@ -319,17 +272,25 @@ export default function InfoAlumn() {
     setManualAddStep(1)
   }
 
-  const handleInputChange = async (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    if (name === 'correo_usuario') {
-      await checkEmailAvailability(value)
+  const handleInputChange = async (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+  
+    // Establecer el valor en el estado antes de la validación
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  
+    if (name === 'correo_usuario' && isValidEmail(value)) {
+      await checkEmailAvailability(value);
     } else if (name === 'pwd_usuario') {
-      validatePassword(value)
+      validatePassword(value);
     }
-    setFormData({ ...formData, [name]: value })
-  }
+  };
+  
+  // Función para validar el formato de correo
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
 
 
   const handleManualAddInputChange = (
@@ -341,11 +302,7 @@ export default function InfoAlumn() {
 
   const handleInsert = async (e: FormEvent) => {
     e.preventDefault()
-    if (!captchaValido) {
-      toast.error('Por favor, completa correctamente el CAPTCHA.')
-      return
-    }
-
+   
     try {
       const response = await fetch(`${apiUrl}usuario/alumno/insert`, {
         method: 'POST',
@@ -392,6 +349,21 @@ export default function InfoAlumn() {
     }
   }
 
+  // Crear una función separada para obtener los alumnos
+const fetchAlumnos = async () => {
+ try {
+   const response = await fetch(`${apiUrl}alumno`);
+   if (!response.ok) {
+     throw new Error('Error al obtener los alumnos');
+   }
+   const data = await response.json();
+   setAlumnos(data);
+ } catch (error) {
+   console.error('Error al obtener los alumnos:', error);
+   toast.error('Error al obtener los alumnos desde el servidor.');
+ }
+};
+
   const handleManualAdd = async (e: FormEvent) => {
     e.preventDefault()
 
@@ -411,7 +383,7 @@ export default function InfoAlumn() {
 
       toast.success('Alumno agregado exitosamente')
       closeManualAddModal()
-      fetchAlumnos() // Refrescar la lista de alumnos después de la inserción
+      await fetchAlumnos(); // Refrescar la lista de alumnos después de la inserción
     } catch (err) {
       let errorMessage = 'Error desconocido'
       if (err instanceof Error) {
@@ -447,24 +419,17 @@ export default function InfoAlumn() {
 
   const validatePassword = (password: string) => {
     const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
       toast.error(
         'El password debe tener al menos 8 caracteres, incluir letras mayúsculas, minúsculas, números y caracteres especiales, y no debe contener espacios'
-      )
-      setFormData((prevState) => ({ ...prevState, pwd_usuario: '' }))
+      );
     } else {
-      toast.success('Contraseña válida')
+      toast.success('Contraseña válida');
     }
-  }
+  };
+  
 
-  const onChangeCaptcha = () => {
-    if (captcha.current && captcha.current.getValue()) {
-      cambiarEstado(true)
-    } else {
-      cambiarEstado(false)
-    }
-  }
 
   const generateToken = () => {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -615,13 +580,15 @@ export default function InfoAlumn() {
                     >
                       Crear Usuario
                     </button>
+
                     <button
-                      className="update-button-info-alumn-admin"
+                      className="save-button-info-alumn-admin"
                       type="button"
-                 
+                      onClick={() => openUpdateModal(alumno)}
                     >
                       Actualizar
                     </button>
+                    
                     <button
     className="info-button-info-alumn-admin"
     type="button"
@@ -732,7 +699,7 @@ export default function InfoAlumn() {
               <div className="register-input-container-info-alumn-admin">
                 <label htmlFor="correo_usuario">Correo</label>
                 <input
-                  type="email"
+                  type="text"
                   id="correo_usuario"
                   name="correo_usuario"
                   placeholder="Correo"
@@ -744,14 +711,15 @@ export default function InfoAlumn() {
               <div className="register-input-container-info-alumn-admin">
                 <label htmlFor="pwd_usuario">Contraseña</label>
                 <input
-                  type="password"
-                  id="pwd_usuario"
-                  name="pwd_usuario"
-                  placeholder="Contraseña"
-                  value={formData.pwd_usuario}
-                  onChange={handleInputChange}
-                  required
-                />
+    type="password"
+    id="pwd_usuario"
+    name="pwd_usuario"
+    placeholder="Contraseña"
+    value={formData.pwd_usuario}
+    onChange={(e) => setFormData({ ...formData, pwd_usuario: e.target.value })}
+    onBlur={(e) => validatePassword(e.target.value)}
+    required
+  />
               </div>
               <div className="register-input-container-info-alumn-admin">
                 <label htmlFor="phone_usuario">Teléfono</label>
@@ -837,13 +805,6 @@ export default function InfoAlumn() {
               </div>
 
               
-              <div className="recaptcha-info-alumn">
-                <ReCAPTCHA
-                  ref={captcha}
-                  sitekey="6LdYfJspAAAAAAxTWQY68WAEX6JTgnysv3NxAMzd"
-                  onChange={onChangeCaptcha}
-                />
-              </div>
               <div className="button-group-info-alumn-admin">
                 <button
                   type="button"
@@ -861,7 +822,12 @@ export default function InfoAlumn() {
         </form>
       </Modal>
 
- 
+      <ModalActualizarAlumno
+  isOpen={isUpdateModalOpen}
+  onRequestClose={closeUpdateModal}
+  alumno={selectedAlumnoToUpdate}
+/>
+
 
       <Modal
         isOpen={isAddModalOpen}
@@ -894,14 +860,14 @@ export default function InfoAlumn() {
       <Modal
         isOpen={isManualAddModalOpen}
         onRequestClose={closeManualAddModal}
-     className="modal-info-alumn-admin"
-        overlayClassName="modal-overlay-info-alumn-admin"
+ className="modal-alumn-manual"
+  overlayClassName="modal-overlay-alumn-manual"
       >
-        <h2>Agregar Alumno Manualmente</h2>
-        <form className="modal-overlay-info-alumn-admin" onSubmit={handleManualAdd}>
+        <h2 className="modal-alumn-manual">Agregar Alumno Manualmente</h2>
+        <form onSubmit={handleManualAdd}>
           {manualAddStep === 1 && (
-            <div className="register-section-info-alumn-admin">
-              <div className="register-input-container-info-alumn-admin">
+            <div className="form-alumn-manual" >
+              <div >
                 <label htmlFor="nombre_alumnos">Nombre</label>
                 <input
                   type="text"
@@ -915,7 +881,7 @@ export default function InfoAlumn() {
                   title="El nombre solo puede contener letras"
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="app_alumnos">Apellido Paterno</label>
                 <input
                   type="text"
@@ -929,7 +895,7 @@ export default function InfoAlumn() {
                   title="El apellido paterno solo puede contener letras"
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="apm_alumnos">Apellido Materno</label>
                 <input
                   type="text"
@@ -943,7 +909,7 @@ export default function InfoAlumn() {
                   title="El apellido materno solo puede contener letras"
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="fecha_nacimiento_alumnos">
                   Fecha de Nacimiento
                 </label>
@@ -958,18 +924,18 @@ export default function InfoAlumn() {
                 />
               </div>
             
-              <div className="button-group-info-alumn-admin">
+              <div className="button-group-alumn-manual">
                 <button
                   type="button"
                   onClick={closeManualAddModal}
-                  className="cancel-button-info-alumn-admin"
+                  className="close-button-alumn-manual"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleNextManualAddStep}
-                  className="next-button-info-alumn"
+                  className="save-button-alumn-manual"
                 >
                   Siguiente
                 </button>
@@ -978,8 +944,8 @@ export default function InfoAlumn() {
           )}
 
           {manualAddStep === 2 && (
-            <div className="register-section-info-alumn-admin">
-              <div className="register-input-container-info-alumn-admin">
+            <div className="form-alumn-manual">
+              <div >
                 <label htmlFor="curp_alumnos">CURP</label>
                 <input
                   type="text"
@@ -991,7 +957,7 @@ export default function InfoAlumn() {
                   required
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div>
                 <label htmlFor="nocontrol_alumnos">Número de Control</label>
                 <input
                   type="text"
@@ -1003,7 +969,7 @@ export default function InfoAlumn() {
                   required
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div>
                 <label htmlFor="telefono_alumnos">Teléfono</label>
                 <input
                   type="tel"
@@ -1015,7 +981,7 @@ export default function InfoAlumn() {
                   required
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="seguro_social_alumnos">Seguro Social</label>
                 <input
                   type="text"
@@ -1026,18 +992,18 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
-              <div className="button-group-info-alumn-admin">
+              <div className="button-group-alumn-manual">
                 <button
                   type="button"
                   onClick={handlePreviousManualAddStep}
-                  className="previous-button-info-alumn-admin"
+                  className="close-button-alumn-manual"
                 >
                   Anterior
                 </button>
                 <button
                   type="button"
                   onClick={handleNextManualAddStep}
-                  className="next-button-info-alumn-admin"
+                  className="save-button-alumn-manual"
                 >
                   Siguiente
                 </button>
@@ -1046,8 +1012,8 @@ export default function InfoAlumn() {
           )}
 
           {manualAddStep === 3 && (
-            <div className="register-section-info-alumn-admin">
-              <div className="register-input-container-info-alumn-admin">
+            <div className="form-alumn-manual">
+              <div >
                 <label htmlFor="cuentacredencial_alumnos">
                   Cuenta Credencial
                 </label>
@@ -1060,7 +1026,7 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="idSexo">Sexo</label>
                 <select
                   id="idSexo"
@@ -1077,7 +1043,7 @@ export default function InfoAlumn() {
                   ))}
                 </select>
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="idClinica">Clínica</label>
                 <select
                   id="idClinica"
@@ -1098,7 +1064,7 @@ export default function InfoAlumn() {
                 </select>
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+              <div>
                 <label htmlFor="idGrado">Grado</label>
                 <select
                   id="idGrado"
@@ -1115,7 +1081,31 @@ export default function InfoAlumn() {
                   ))}
                 </select>
               </div>
-              <div className="register-input-container-info-alumn-admin">
+            
+            
+              <div className="button-group-alumn-manual">
+                <button
+                  type="button"
+                  onClick={handlePreviousManualAddStep}
+                  className="close-button-alumn-manual"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextManualAddStep}
+                  className="save-button-alumn-manual"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+
+          {manualAddStep === 4 && (
+            <div className="form-alumn-manual">
+          
+            <div >
                 <label htmlFor="idGrupo">Grupo</label>
                 <select
                   id="idGrupo"
@@ -1132,7 +1122,7 @@ export default function InfoAlumn() {
                   ))}
                 </select>
               </div>
-              <div className="register-input-container-info-alumn-admin">
+            <div >
                 <label htmlFor="idTraslado">Traslado</label>
                 <select
                   id="idTraslado"
@@ -1152,30 +1142,8 @@ export default function InfoAlumn() {
                   ))}
                 </select>
               </div>
-              <div className="button-group-info-alumn-admin">
-                <button
-                  type="button"
-                  onClick={handlePreviousManualAddStep}
-                  className="previous-button-info-alumn-admin"
-                >
-                  Anterior
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextManualAddStep}
-                  className="next-button-info-alumn-admin"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
 
-          {manualAddStep === 4 && (
-            <div className="register-section-info-alumn-admin">
-            
-
-              <div className="register-input-container-info-alumn-admin">
+              <div>
                 <label htmlFor="idTrasladotransporte">
                   Traslado Transporte
                 </label>
@@ -1198,7 +1166,7 @@ export default function InfoAlumn() {
                 </select>
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="idCarreraTecnica">Carrera Técnica</label>
                 <select
                   id="idCarreraTecnica"
@@ -1219,7 +1187,32 @@ export default function InfoAlumn() {
                 </select>
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+            
+
+              <div className="button-group-alumn-manual">
+                <button
+                  type="button"
+                  onClick={handlePreviousManualAddStep}
+                  className="close-button-alumn-manual"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextManualAddStep}
+                  className="save-button-alumn-manual"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+
+          {manualAddStep === 5 && (
+            <div className="form-alumn-manual">
+
+<div>
+              <div >
                 <label htmlFor="idPais">País</label>
                 <select
                   id="idPais"
@@ -1237,7 +1230,7 @@ export default function InfoAlumn() {
                 </select>
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="idEstado">Estado</label>
                 <select
                   id="idEstado"
@@ -1254,8 +1247,6 @@ export default function InfoAlumn() {
                   ))}
                 </select>
               </div>
-
-              <div className="register-input-container-info-alumn-admin">
                 <label htmlFor="municipio_alumnos">Municipio</label>
                 <input
                   type="text"
@@ -1266,7 +1257,7 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="comunidad_alumnos">Comunidad</label>
                 <input
                   type="text"
@@ -1277,19 +1268,21 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
+     
+ 
 
-              <div className="button-group-info-alumn-admin">
+              <div className="button-group-alumn-manual">
                 <button
                   type="button"
                   onClick={handlePreviousManualAddStep}
-                  className="previous-button-info-alumn-admin"
+                  className="close-button-alumn-manual"
                 >
                   Anterior
                 </button>
                 <button
                   type="button"
                   onClick={handleNextManualAddStep}
-                  className="next-button-info-alumn-admin"
+                  className="save-button-alumn-manual"
                 >
                   Siguiente
                 </button>
@@ -1297,10 +1290,13 @@ export default function InfoAlumn() {
             </div>
           )}
 
-          {manualAddStep === 5 && (
-            <div className="register-section-info-alumn-admin">
+{manualAddStep === 6 && (
+            <div className="form-alumn-manual">
+
+
              
-              <div className="register-input-container-info-alumn-admin">
+             
+              <div >
                 <label htmlFor="calle_alumnos">Calle</label>
                 <input
                   type="text"
@@ -1311,7 +1307,7 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="proc_sec_alumno">Procedencia Secundaria</label>
                 <input
                   type="text"
@@ -1322,7 +1318,7 @@ export default function InfoAlumn() {
                   onChange={handleManualAddInputChange}
                 />
               </div>
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="nombre_completo_familiar">Nombre Completo Familiar</label>
                 <input
                   type="text"
@@ -1334,7 +1330,7 @@ export default function InfoAlumn() {
                 />
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="telefono_familiar">telefono Familiar</label>
                 <input
                   type="text"
@@ -1346,7 +1342,32 @@ export default function InfoAlumn() {
                 />
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+       
+
+
+              <div className="button-group-alumn-manual">
+                <button
+                  type="button"
+                  onClick={handlePreviousManualAddStep}
+                  className="close-button-alumn-manual"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextManualAddStep}
+                  className="save-button-alumn-manual"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+
+{manualAddStep === 7 && (
+            <div className="form-alumn-manual">
+
+              <div >
                 <label htmlFor="telefono_trabajo_familiar">telefono trabajo Familiar</label>
                 <input
                   type="text"
@@ -1358,7 +1379,7 @@ export default function InfoAlumn() {
                 />
               </div>
 
-              <div className="register-input-container-info-alumn-admin">
+              <div >
                 <label htmlFor="correo_familiar">correo Familiar</label>
                 <input
                   type="email"
@@ -1370,15 +1391,15 @@ export default function InfoAlumn() {
                 />
               </div>
 
-              <div className="button-group-info-alumn-admin">
+              <div className="button-group-alumn-manual">
                 <button
                   type="button"
                   onClick={handlePreviousManualAddStep}
-                  className="previous-button-info-alumn-admin"
+                  className="close-button-alumn-manual"
                 >
                   Anterior
                 </button>
-                <button type="submit" className="save-button-info-alumn-admin">
+                <button type="submit" className="save-button-alumn-manual">
                   Guardar
                 </button>
               </div>
@@ -1386,6 +1407,7 @@ export default function InfoAlumn() {
           )}
         </form>
       </Modal>
+
 
       <Modal
                 isOpen={isCsvModalOpen}
@@ -1431,9 +1453,7 @@ export default function InfoAlumn() {
             <li>Manual: Llenando el formulario manualmente.</li>
             <li>CSV: Subiendo un archivo CSV con los datos de los alumnos.</li>
           </ul>
-          <p>
-            <strong>En el ID USUARIO PON UN :1</strong>
-          </p>
+    
           <p>
             Puede descargar un archivo CSV de ejemplo desde el siguiente enlace:
           </p>
@@ -1449,19 +1469,11 @@ export default function InfoAlumn() {
   <h2>Información Completa del Alumno</h2>
   {selectedAlumno && (
     <div className="info-alumn-admin-container">
-      <p><strong>Seguro Social:</strong> {selectedAlumno.seguro_social_alumnos || "No disponible"}</p>
-      <p><strong>Cuenta Credencial:</strong> {selectedAlumno.cuentacredencial_alumnos || "No disponible"}</p>
-      <p><strong>Sexo:</strong> {selectedAlumno.sexo || "No disponible"}</p>
+      <p><strong>Seguro Social:</strong> {selectedAlumno.clinica || "No disponible"}: {selectedAlumno.seguro_social_alumnos || "No disponible"}</p>
       <p><strong>Correo de Usuario:</strong> {selectedAlumno.correo_usuario || "No disponible"}</p>
-      <p><strong>Clínica:</strong> {selectedAlumno.clinica || "No disponible"}</p>
-      <p><strong>Grado:</strong> {selectedAlumno.grado || "No disponible"}</p>
-      <p><strong>Grupo:</strong> {selectedAlumno.grupo || "No disponible"}</p>
+      <p><strong>Semestre:</strong> {selectedAlumno.grado || "No disponible"}º{selectedAlumno.grupo || "No disponible"}</p>      
       <p><strong>Carrera Técnica:</strong> {selectedAlumno.carrera_tecnica || "No disponible"}</p>
-      <p><strong>País:</strong> {selectedAlumno.pais || "No disponible"}</p>
-      <p><strong>Estado:</strong> {selectedAlumno.estado || "No disponible"}</p>
-      <p><strong>Municipio:</strong> {selectedAlumno.municipio_alumnos || "No disponible"}</p>
-      <p><strong>Comunidad:</strong> {selectedAlumno.comunidad_alumnos || "No disponible"}</p>
-      <p><strong>Calle:</strong> {selectedAlumno.calle_alumnos || "No disponible"}</p>
+      <p><strong>Ubicación:</strong>{selectedAlumno.calle_alumnos || "No disponible"},{selectedAlumno.comunidad_alumnos || "No disponible"},{selectedAlumno.municipio_alumnos || "No disponible"}, {selectedAlumno.estado || "No disponible"}</p>
       <p><strong>Procedencia Secundaria:</strong> {selectedAlumno.proc_sec_alumno || "No disponible"}</p>
       <p><strong>Nombre Completo del Familiar:</strong> {selectedAlumno.nombre_completo_familiar || "No disponible"}</p>
       <p><strong>Telefono Familiar:</strong> {selectedAlumno.telefono_familiar || "No disponible"}</p>

@@ -7,9 +7,9 @@ import './InfoAlumnoFamiliar.css';
 import { apiUrl } from '../../../constants/Api';
 import { Alumnos, Notificacion_Alumno, HorarioAlumno } from '../../../constants/interfaces'; // Importar las interfaces
 import { AuthContext } from '../../../Auto/Auth';
-
+import Feedback from '../../../components/Feedback/FeedbackModal';
 Modal.setAppElement('#root'); // Ajusta el selector al contenedor principal de tu aplicación
-
+import { toast,ToastContainer } from 'react-toastify';
 export default function InfoAlumnoFamiliar() {
   const authContext = useContext(AuthContext);
 
@@ -30,19 +30,25 @@ export default function InfoAlumnoFamiliar() {
   const [notificaciones, setNotificaciones] = useState<Notificacion_Alumno[]>([]);
   const [asignaturas, setAsignaturas] = useState<HorarioAlumno[]>([]);
   const [alumnoToDelete, setAlumnoToDelete] = useState<Alumnos | null>(null); // Estado para el alumno a eliminar
+  const [feedbackModalIsOpen, setFeedbackModalIsOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetch(`${apiUrl}alumnos_agregados/view/${user.id_usuario}`)
-        .then(response => response.json())
-        .then(data => {
+      const fetchAlumnosAgregados = async () => {
+        try {
+          const response = await fetch(`${apiUrl}alumnos_agregados/view/${user.id_usuario}`);
+          const data = await response.json();
           if (Array.isArray(data)) {
             setAlumnosAgregados(data);
           } else {
             console.error('Data received is not an array', data);
           }
-        })
-        .catch(error => console.error('Error al cargar alumnos agregados:', error));
+        } catch (error) {
+          console.error('Error al cargar alumnos agregados:', error);
+        }
+      };
+
+      fetchAlumnosAgregados();
     }
   }, [user]);
 
@@ -60,6 +66,26 @@ export default function InfoAlumnoFamiliar() {
       setError('Alumno no encontrado');
       setAlumno(null);
       setModalIsOpen(false); // Cerrar el modal en caso de error
+    }
+  };
+
+  const openFeedbackModal = async () => {
+    if (!user) {
+      toast.error('El usuario no está autenticado.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}can-show-feedback/${user.id_usuario}`);
+      const result = await response.json();
+
+      if (result.canShowFeedback) {
+        setFeedbackModalIsOpen(true); // Abrir el modal de feedback
+      } else {
+        toast.info(result.message); // Mostrar mensaje si el feedback no puede enviarse
+      }
+    } catch  {
+      toast.error('Error al verificar si se puede mostrar el feedback.');
     }
   };
 
@@ -85,6 +111,7 @@ export default function InfoAlumnoFamiliar() {
         }
         setAlumnosAgregados([...alumnosAgregados, alumno]);
         closeModal();
+        openFeedbackModal();
       })
       .catch(error => console.error('Error al agregar alumno:', error));
     }
@@ -99,49 +126,83 @@ export default function InfoAlumnoFamiliar() {
     setDetailsModalIsOpen(false);
   };
 
-  const openNotificacionesModal = (al: Alumnos) => {
+  const openNotificacionesModal = async (al: Alumnos) => {
     setAlumno(al);
-    fetch(`${apiUrl}notificaciones/${al.id_alumnos}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('No se encontraron notificaciones');
-        }
-        return response.json();
-      })
-      .then(data => {
-        // Filtrar solo las notificaciones de asistencia
-        const notificacionesAsistencia = data.filter((notificacion: Notificacion_Alumno) => notificacion.subject_notificacion.includes('Asistencia'));
-        setNotificaciones(notificacionesAsistencia);
-        setNotificacionesModalIsOpen(true);
-      })
-      .catch(error => {
-        console.error('Error al obtener notificaciones:', error);
-        setNotificaciones([]);
-        setNotificacionesModalIsOpen(true);
-      });
+    try {
+      const response = await fetch(`${apiUrl}notificaciones/${al.id_alumnos}`);
+      if (!response.ok) {
+        throw new Error('No se encontraron notificaciones');
+      }
+      const data = await response.json();
+      const notificacionesAsistencia = data.filter((notificacion: Notificacion_Alumno) =>
+        notificacion.subject_notificacion.includes('Asistencia')
+      );
+      setNotificaciones(notificacionesAsistencia);
+
+      setNotificacionesModalIsOpen(true);
+    } catch (error) {
+      console.error('Error al obtener notificaciones:', error);
+
+      setNotificacionesModalIsOpen(true);
+    }
   };
+
 
   const closeNotificacionesModal = () => {
     setNotificacionesModalIsOpen(false);
+    openFeedbackModal();
   };
 
-  const obtenerAsignaturas = (id_alumno: number) => {
-    fetch(`${apiUrl}asignatura/horario/escolar/${id_alumno}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('No se encontraron asignaturas');
+  const obtenerAsignaturas = async (id_alumno: number) => {
+    try {
+      const response = await fetch(`${apiUrl}asignatura/horario/escolar/${id_alumno}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Caso específico para 404: Recurso no encontrado
+          toast.error('Este alumno no cuenta aún con horarios escolares.');
+          console.log('Este alumno no cuenta aún con horarios escolares.');
+          return;
         }
-        return response.json();
-      })
-      .then(data => {
-        setAsignaturas(data.asignaturas);
-        setHorarioModalIsOpen(true);
-      })
-      .catch(error => {
-        console.error('Error al obtener asignaturas:', error);
-        setAsignaturas([]);
-        setHorarioModalIsOpen(true);
-      });
+        // Manejo genérico para otros errores
+        throw new Error(`Error ${response.status}: No se pudo obtener información del horario.`);
+      }
+  
+      const data = await response.json();
+  
+      // Validar si la respuesta contiene asignaturas
+      if (!data.asignaturas || data.asignaturas.length === 0) {
+        toast.info('Este alumno no cuenta aún con horarios escolares.');
+        return;
+      }
+  
+      setAsignaturas(data.asignaturas);
+      setHorarioModalIsOpen(true); // Abrir el modal de horario
+  
+      // Verificar si se puede mostrar el feedback
+      if (user) {
+        const feedbackResponse = await fetch(`${apiUrl}can-show-feedback/${user.id_usuario}`);
+        const feedbackResult = await feedbackResponse.json();
+  
+        if (feedbackResult.canShowFeedback) {
+          setFeedbackModalIsOpen(true); // Mostrar el modal de feedback si la API lo permite
+        } else {
+          toast.info(feedbackResult.message); // Mostrar mensaje si el feedback no puede enviarse
+          console.log(feedbackResult.message); // Mostrar mensaje si el feedback no puede enviarse
+        }
+      } else {
+        toast.error('El usuario no está autenticado.');
+      }
+    } catch (error) {
+      // Manejar errores genéricos
+      console.error('Error al obtener asignaturas:', error);
+      toast.error('Ocurrió un error al obtener las asignaturas.');
+    }
+  };
+  
+
+  const closeFeedbackModal = () => {
+    setFeedbackModalIsOpen(false);
   };
 
   const closeHorarioModal = () => {
@@ -347,6 +408,17 @@ export default function InfoAlumnoFamiliar() {
           </div>
         )}
       </Modal>
+
+
+      {/* Modal para agregar feedback */}
+      <Feedback
+        isOpen={feedbackModalIsOpen}
+        onRequestClose={closeFeedbackModal}
+        idUsuario={user?.id_usuario || 0}
+      />
+
+
+      <ToastContainer/>
     </div>
   );
 }
